@@ -1,29 +1,36 @@
-import { useState } from "react";
-import { account } from "../lib/appwrite";
-import { useDispatch, useSelector } from "react-redux";
-import { signinStart, signinSuccess } from "../redux/slices/userSlice";
-import loginsvg from "../assets/images/login-svg.svg";
-import { useNavigate } from "react-router";
-import { toast } from "react-toastify";
-import Button from "../components/Button";
-import Input from "../components/Input";
-import Label from "../components/Label";
-import { RootState } from "../redux/store/store";
-import { Hourglass } from "react-loader-spinner";
+import { useEffect, useState } from 'react';
+import { account } from '../lib/appwrite';
+import { useDispatch, useSelector } from 'react-redux';
+import { signinFailure, signinStart, signinSuccess } from '../redux/slices/userSlice';
+import loginsvg from '../assets/images/login-svg.svg';
+import { useNavigate } from 'react-router';
+import { toast } from 'react-toastify';
+import Button from '../components/Button';
+import Input from '../components/Input';
+import Label from '../components/Label';
+import { RootState } from '../redux/store/store';
+import { Hourglass } from 'react-loader-spinner';
 
 function Login() {
   const loading = useSelector((state: RootState) => state.user.isLoading);
-  // console.log("Loading from login...",loading);
-
+  const currentSession = useSelector(
+    (state: RootState) => state.user.cookieFallback,
+  );
   const dispatch = useDispatch();
-  const [userData, setUserData] = useState({ email: "", password: "" });
+  const [userData, setUserData] = useState({ email: '', password: '' });
   const Navigate = useNavigate();
-
+  useEffect(() => {
+    console.log('Current session', currentSession);
+    if (currentSession) {
+      Navigate('/booklist');
+      console.log(currentSession);
+    } else Navigate('/login');
+  }, [currentSession]);
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     dispatch(signinStart());
     if (userData.password.length < 8) {
-      toast.error("Password must be 8");
+      toast.error('Password must be 8');
     }
     try {
       const user = await account.createEmailPasswordSession(
@@ -37,23 +44,30 @@ function Login() {
             currentUser: user.providerUid,
           }),
         );
-        toast.success("Login", { autoClose: 1000 });
-        // console.log(user.providerUid);
+        toast.success('Login', { autoClose: 1000 });
+        console.log(currentSession);
 
-        Navigate("/booklist");
+        Navigate('/booklist');
       }
     } catch (err: any) {
       if (err.code === 400) {
-        toast.error("Enter Valid Email", { autoClose: 1000 });
+        toast.error('Enter Valid Email', { autoClose: 1000 });
+      }
+      if (err.code === 401) {
+        toast.error('Unauthorized Access', { autoClose: 1000 });
       }
       if (err.code === 429) {
-        toast.error("Too many request, Try after sometime", {
+        toast.error('Too many request, Try after sometime', {
           autoClose: 1000,
         });
       }
-      console.log("Error: ", err);
+      console.log('Error: ', err);
+      dispatch(
+        signinFailure()
+      )
     }
   };
+
   return (
     <>
       {/* login container */}
@@ -74,8 +88,7 @@ function Login() {
             <div className="flex flex-col w-full md:w-1/2 p-4">
               <form
                 onSubmit={handleLogin}
-                className="flex flex-col space-y-4 border-2 bg-white border-light-gray shadow-xl rounded-3xl"
-              >
+                className="flex flex-col space-y-4 border-2 bg-white border-light-gray shadow-xl rounded-3xl">
                 <div className="flex w-full p-1 justify-start shadow-md mt-2">
                   <h1 className="text-[32px] ml-5 font-canvet text-coral-pink font-bold">
                     Login

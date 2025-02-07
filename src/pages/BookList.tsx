@@ -19,7 +19,6 @@ interface BookValues {
   publicationDate: string;
   price: number;
   discountPrice: number;
-  imageUrl: string;
 }
 
 function BookList() {
@@ -35,16 +34,18 @@ function BookList() {
     null,
   );
   const dispatch = useDispatch();
-  const { books, user } = useSelector((state: RootState) => ({
-    books: state.book.books,
-    user: state.user.currentUser,
+  const { books, userAuth } = useSelector((state: RootState) => ({
+    books: state?.book?.books,
+    userAuth: state?.user?.cookieFallback
   }));
 
   useEffect(() => {
-    if (!user) {
+    console.log(books);
+    
+    if (!userAuth) {
       navigate("/login");
     }
-  }, [user, navigate]);
+  }, [userAuth, navigate]);
 
   const handleAddBook = (
     formValues: BookValues,
@@ -122,26 +123,28 @@ function BookList() {
   };
 
   const filteredBooks = useMemo(() => {
+    if (!books) return []; // Safeguard if books is undefined
+    
     return books
       .filter((book) =>
-        book.title.toLowerCase().includes(searchQuery.toLowerCase()),
+        book.title.toLowerCase().includes(searchQuery.toLowerCase())
       )
       .sort((a, b) => {
         if (!sortBy) return 0;
         const fieldA = a[sortBy as keyof BookValues];
         const fieldB = b[sortBy as keyof BookValues];
-        if (typeof fieldA === "string" && typeof fieldB === "string") {
-          return sortOrder === "asc"
+        if (typeof fieldA === 'string' && typeof fieldB === 'string') {
+          return sortOrder === 'asc'
             ? fieldA.localeCompare(fieldB)
             : fieldB.localeCompare(fieldA);
         }
-        if (typeof fieldA === "number" && typeof fieldB === "number") {
-          return sortOrder === "asc" ? fieldA - fieldB : fieldB - fieldA;
+        if (typeof fieldA === 'number' && typeof fieldB === 'number') {
+          return sortOrder === 'asc' ? fieldA - fieldB : fieldB - fieldA;
         }
         return 0;
       });
   }, [books, searchQuery, sortBy, sortOrder]);
-
+  
   return (
     <div className="flex flex-col justify-around items-center bg-blue-gray">
       <div className="flex gap-8 mt-24 flex-col justify-between items-center sm:min-h-60 w-full">

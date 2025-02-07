@@ -1,5 +1,5 @@
-import { PenLine, Trash2 } from "lucide-react";
 import React from "react";
+import Button from "./Button";
 
 interface BookCardProps {
   title: string;
@@ -51,20 +51,21 @@ export const BookCard: React.FC<BookCardProps> = ({
       {/* Action Buttons */}
       <div className="flex justify-between mt-6 space-x-4">
         {onEdit && (
-          <button
+          <Button
+          label="Edit"
+          dataTestID="editBtn"
             onClick={onEdit}
             className="px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-300"
-          >
-            <PenLine size={20} />
-          </button>
+          />
         )}
         {onDelete && (
-          <button
+          <Button
+            label="Delete"
             onClick={onDelete}
+            dataTestID="deleteBtn"
             className="px-5 py-2 flex items-center bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-300"
-          >
-            <Trash2 size={20} />
-          </button>
+          />
+            
         )}
       </div>
     </div>
