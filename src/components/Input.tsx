@@ -6,6 +6,7 @@ interface InputProps {
   id?: string;
   name?: string;
   value?: string | number;
+  dataTestId: string
   placeholder?: string;
   className?: string;
   labelClassName?: string;
@@ -20,6 +21,7 @@ const Input: React.FC<InputProps> = ({
   name,
   value,
   placeholder,
+  dataTestId,
   className = "",
   disabled = false,
   onChange,
@@ -32,6 +34,7 @@ const Input: React.FC<InputProps> = ({
         id={id}
         name={name}
         value={value}
+        data-testid = {dataTestId}
         placeholder={placeholder}
         className={`p-3 border rounded-md focus:outline-none focus:ring-2 ${className}`}
         disabled={disabled}

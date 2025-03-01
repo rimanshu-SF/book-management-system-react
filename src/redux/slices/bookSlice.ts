@@ -8,7 +8,6 @@ interface Book {
   publicationDate: string;
   price: number;
   discountPrice: number;
-  imageUrl: string;
 }
 
 interface BookState {
