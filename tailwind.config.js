@@ -7,14 +7,15 @@ export default {
   theme: {
     extend: {
       colors:{
-        "yellow": "#FFB200",
+        "dark-blue": "#252A34",
+        "asthetic":"#A0AEC0",
         "blue-gray":"#EAF2F8",
         "navy-blue": "#1F4E79",
         "coral-pink": "#FF6F61",
         "turquoise":"#56CCF2",
-        "lime-green": "#3ba366",
-        "dark-green": "#1a733f",
-        "light-gray": "#D1D9E6",
+        "soft-gary": "#A0AEC0",
+        "dark-green": "#00FF7F",
+        "muted-red": "#FF6B6B",
         "light-org": "#FF5722",
 
       },

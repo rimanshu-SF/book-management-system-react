@@ -12,12 +12,13 @@ import App from './App.tsx';
 import Home from './pages/Home.tsx';
 import { ToastContainer } from 'react-toastify';
 import { Provider } from 'react-redux';
-import store from './redux/store/store.ts';
+import { store } from './redux/store/store.ts';
 import { NotFound } from './pages/NotFound.tsx';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 const BookList = lazy(() => import('./pages/BookList.tsx'));
 const Login = lazy(() => import('./pages/Login.tsx'));
 const Signup = lazy(() => import('./pages/Signup.tsx'));
-const Logout = lazy(()=> import('./pages/Logout.tsx'));
+const Logout = lazy(() => import('./pages/Logout.tsx'));
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -62,9 +63,11 @@ const router = createBrowserRouter(
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Provider store={store}>
-      <RouterProvider router={router} />
-      <ToastContainer />
-    </Provider>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_CLIENT_ID}>
+      <Provider store={store}>
+        <RouterProvider router={router} />
+        <ToastContainer />
+      </Provider>
+    </GoogleOAuthProvider>
   </StrictMode>,
 );
