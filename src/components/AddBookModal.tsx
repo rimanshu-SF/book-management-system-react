@@ -1,18 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { BookValues } from '../redux/slices/bookSlice';
 import { X } from 'lucide-react';
 import Label from './Label';
 import Input from './Input';
 import Button from './Button';
-
-interface BookValues {
-  title: string;
-  Author: { fullName: string };
-  Category: { categoryName: string };
-  isbn: string;
-  publicationDate: string;
-  price: number;
-  discountPrice: number;
-}
 
 interface AddBookModalProps {
   isOpen: boolean;
@@ -32,8 +23,8 @@ const AddBookModal: React.FC<AddBookModalProps> = ({
 }) => {
   const initialFormValues: BookValues = {
     title: '',
-    Author: { fullName: '' },
-    Category: { categoryName: '' },
+    Author: { name: '' },
+    Category: { genre: '' },
     isbn: '',
     publicationDate: '',
     price: 0,
@@ -59,12 +50,12 @@ const AddBookModal: React.FC<AddBookModalProps> = ({
     if (name === 'author') {
       setFormValues({
         ...formValues,
-        Author: { fullName: value },
+        Author: { name: value },
       });
     } else if (name === 'genre') {
       setFormValues({
         ...formValues,
-        Category: { categoryName: value },
+        Category: { genre: value },
       });
     } else {
       setFormValues({ ...formValues, [name]: newValue });
@@ -142,7 +133,7 @@ const AddBookModal: React.FC<AddBookModalProps> = ({
                   type="text"
                   id="author"
                   name="author"
-                  value={formValues.Author.fullName}
+                  value={formValues.Author.name}
                   onChange={handleChange}
                   placeholder="Enter Author Name"
                   className="w-full bg-white/5 border border-white/20 text-white placeholder-white/50 rounded-md focus:ring-2 focus:ring-blue-400/50 backdrop-blur-sm"
@@ -221,6 +212,7 @@ const AddBookModal: React.FC<AddBookModalProps> = ({
                   placeholder="Enter Discount Price"
                   className="w-full bg-white/5 border border-white/20 text-white placeholder-white/50 rounded-md focus:ring-2 focus:ring-blue-400/50 backdrop-blur-sm"
                 />
+                <p className='text-red-500 text-sm'>Leave it blank, if no discout</p>
               </div>
 
               <div className="col-span-2">
@@ -232,7 +224,7 @@ const AddBookModal: React.FC<AddBookModalProps> = ({
                 <select
                   id="genre"
                   name="genre"
-                  value={formValues.Category.categoryName}
+                  value={formValues.Category.genre}
                   onChange={handleChange}
                   className="w-full bg-white/5 border border-white/20 text-white placeholder-white/50 rounded-md focus:ring-2 focus:ring-blue-400/50 backdrop-blur-sm py-2"
                   required>

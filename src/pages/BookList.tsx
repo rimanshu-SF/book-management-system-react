@@ -25,22 +25,32 @@ function BookList() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editBookData, setEditBookData] = useState<BookValues | null>(null);
-  const [selectedBookIndex, setSelectedBookIndex] = useState<number | null>(
-    null,
-  );
+  const [selectedBookIndex, setSelectedBookIndex] = useState<number | null>(null);
+
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const books = useSelector((state: RootState) => state.book.books?.data);
+  
+  const { books, totalPages, currentPage } = useSelector(
+    (state: RootState) => state.book.books || {
+      books: [],
+      totalPages: 1,
+      currentPage: 1,
+      totalItems: 0,
+      limit: 9
+    }
+  );
+  
   const currentUser = useSelector((state: RootState) => state.user.currentUser);
+  const loading = useSelector((state: RootState) => state.book.loading);
 
   useEffect(() => {
-    console.log('Fetching books...');
-    if (currentUser != null) dispatch(fetchBooks());
-    else {
+    if (currentUser) {
+      dispatch(fetchBooks({ page: currentPage, limit: 9 }));
+    } else {
       toast.warning('Login First', { autoClose: 1000 });
       navigate('/');
     }
-  }, [dispatch, navigate, currentUser]);
+  }, [dispatch, navigate, currentUser, currentPage]);
 
   //method to add book
   const handleAddBook = async (
@@ -53,8 +63,7 @@ function BookList() {
     }
 
     try {
-      if (editIndex !== null) {
-        // Edit book
+      if (editIndex !== null && books[editIndex]?.id) {
         await dispatch(
           editBook({ id: books[editIndex].id, book: formValues }),
         ).unwrap();
@@ -77,10 +86,9 @@ function BookList() {
   const handleFormValidation = (newBook: BookValues): boolean => {
     if (
       !newBook.title ||
-      !newBook.Author.fullName ||
-      !newBook.Category.categoryName ||
-      isNaN(newBook.price) ||
-      isNaN(newBook.discountPrice)
+      !newBook.Author.name ||
+      !newBook.Category.genre ||
+      isNaN(newBook.price)
     ) {
       toast.error('Please fill all required fields.', { autoClose: 1000 });
       return false;
@@ -101,8 +109,8 @@ function BookList() {
       });
       return false;
     }
-    if (newBook.isbn.length !== 13) {
-      toast.error('ISBN should be 13 digits long.', { autoClose: 1000 });
+    if (newBook.isbn.length <= 13) {
+      toast.error('ISBN atleast 13 digits long.', { autoClose: 1000 });
       return false;
     }
     return true;
@@ -111,7 +119,6 @@ function BookList() {
   //delete book
   const handleDeleteBook = (id: number) => {
     dispatch(removeBook(id));
-    toast.success('Book deleted successfully.', { autoClose: 1000 });
     setIsModalVisible(false);
   };
 
@@ -137,10 +144,10 @@ function BookList() {
   };
 
   //method to sort book
-  const sortBooks = (books: BookValues[]) => {
-    if (!sortBy) return books;
+  const sortBooks = (booksToSort: BookValues[]) => {
+    if (!sortBy) return booksToSort;
 
-    return books.sort((a, b) => {
+    return [...booksToSort].sort((a, b) => {
       const fieldA = a[sortBy as keyof BookValues];
       const fieldB = b[sortBy as keyof BookValues];
 
@@ -157,40 +164,81 @@ function BookList() {
   };
 
   //method to search book
-  const filterBooksBySearch = (books: BookValues[]) => {
-    return books.filter((book) =>
+  const filterBooksBySearch = (booksToFilter: BookValues[]) => {
+    return booksToFilter.filter((book) =>
       book.title.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   };
 
-  const filteredAndSortedBooks = useMemo(() => {
-    if (!books) return [];
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      dispatch(fetchBooks({ page: newPage, limit: 6 }));
+    }
+  };
 
+  const filteredAndSortedBooks = useMemo(() => {
+    if (!books || books.length === 0) return [];
     const searchedBooks = filterBooksBySearch(books);
     return sortBooks(searchedBooks);
-  }, [books, searchQuery, sortBooks, filterBooksBySearch]);
+  }, [books, searchQuery, sortBy, sortOrder]);
+
+  // Pagination render function
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="flex justify-center gap-2 mt-6">
+        <button
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1 || loading}
+          className="px-3 py-1 bg-gray-300 text-black rounded-md hover:bg-turquoise transition disabled:opacity-50"
+        >
+          Prev
+        </button>
+
+        {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+          <button
+            key={page}
+            onClick={() => handlePageChange(page)}
+            disabled={loading}
+            className={`px-3 py-1 ${
+              currentPage === page
+                ? 'bg-turquoise text-white'
+                : 'bg-gray-300 text-black'
+            } rounded-md hover:bg-turquoise transition disabled:opacity-50`}
+          >
+            {page}
+          </button>
+        ))}
+
+        <button
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages || loading}
+          className="px-3 py-1 bg-gray-300 text-black rounded-md hover:bg-turquoise transition disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 relative overflow-hidden">
-      {/* Background gradient with subtle animated blobs */}
       <div className="absolute inset-0">
         <div className="absolute w-full h-full bg-gradient-to-br bg-white/10" />
         <div className="absolute w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse top-0 left-0" />
         <div className="absolute w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse bottom-0 right-0" />
       </div>
 
-      {/* Glass container */}
       <div className="relative z-10 flex mt-10 flex-col items-center justify-start p-6 min-h-screen">
         <div className="w-full max-w-5xl backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-xl p-6 mt-12">
-          {/* Header section */}
           <div className="flex flex-col sm:flex-row gap-6 justify-between items-center mb-8">
             <Button
               onClick={() => setModalOpen(true)}
               label="Add Book"
-              className="w-full sm:w-auto px-3 py-3 bg-turquoise/10 text-white rounded-xl font-semibold hover:bg-turquoise/50 transition-all duration-300 transform hover:scale-105 shadow-md border-2 border-turquoise/20"
+              className="w-full sm:w-auto px-3 py-3 bg-turquoise/10 text-white rounded-xl font-semibold hover:bg-turquoise/50 transition-all duration-300 transform hover:scale-105 shadow-md border-2 border-turquoise"
             />
             
-            {/* Sort and Search controls */}
             <div className="w-full flex flex-col sm:flex-row gap-4">
               <div className="flex gap-3">
                 <select
@@ -201,7 +249,7 @@ function BookList() {
                     Sort by
                   </option>
                   <option value="title" className="bg-gray-900">Title</option>
-                  <option value="categoryName" className="bg-gray-900">Genre</option>
+                  <option value="price" className="bg-gray-900">Price</option>
                 </select>
                 <Button
                   onClick={() => handleSort(sortBy)}
@@ -225,8 +273,13 @@ function BookList() {
             </div>
           </div>
 
-          {/* Book display section */}
-          {filteredAndSortedBooks.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-white text-xl font-medium opacity-80">
+                Loading books...
+              </p>
+            </div>
+          ) : filteredAndSortedBooks.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-white text-xl font-medium opacity-80">
                 No books available
@@ -236,28 +289,31 @@ function BookList() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredAndSortedBooks.map((book, index) => (
-                <div
-                  key={index}
-                  className="rounded-xl p-2 transition-all duration-300 transform hover:scale-102"
-                >
-                  <BookCard
-                    title={book.title}
-                    author={book.Author.fullName}
-                    genre={book.Category.categoryName}
-                    isbn={book.isbn}
-                    price={book.price}
-                    discountPrice={book.discountPrice}
-                    onEdit={() => handleEditBook(index)}
-                    onDelete={() => {
-                      setSelectedBookIndex(book.id!);
-                      setIsModalVisible(true);
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredAndSortedBooks.map((book, index) => (
+                  <div
+                    key={book.id || index}
+                    className="rounded-xl p-2 transition-all duration-300 transform hover:scale-102"
+                  >
+                    <BookCard
+                      title={book.title}
+                      author={book.Author.name}
+                      genre={book.Category.genre}
+                      isbn={book.isbn}
+                      price={book.price}
+                      discountPrice={book.discountPrice}
+                      onEdit={() => handleEditBook(index)}
+                      onDelete={() => {
+                        setSelectedBookIndex(book.id!);
+                        setIsModalVisible(true);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+              {renderPagination()}
+            </>
           )}
         </div>
       </div>
@@ -275,7 +331,7 @@ function BookList() {
 
       <ConfirmationModal
         show={isModalVisible}
-        onConfirm={handleDeleteBook}
+        onConfirm={() => selectedBookIndex && handleDeleteBook(selectedBookIndex)}
         onCancel={handleCancelBook}
         message="Are you sure you want to delete this book?"
         bookIndex={selectedBookIndex}

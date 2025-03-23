@@ -21,25 +21,31 @@ function Login() {
     if (currentUser) navigate('/booklist');
   }, [currentUser, navigate]);
 
-  const handleGoogleResponse = useCallback(async (authResult) => {
+  const handleGoogleResponse = useCallback(async (authResult: any) => {
     try {
+      // console.log('Auth Result:', authResult);
+
       if (!authResult?.code) throw new Error('Authentication failed');
-      
+
       dispatch(signinStart());
-      const { data } = await googleLogin(authResult.code);
+      const response = await googleLogin(authResult.code); // Call API with code
+      const { data } = response;
+
       const userObj = {
         name: data.user.name,
         email: data.user.email,
-        token: data.token
+        token: data.token,
       };
-      
+
       dispatch(signinSuccess(userObj));
       toast.success('Welcome back!', { autoClose: 1000 });
       navigate('/booklist');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Login Error:', error);
+
       const errorMessage = error.response?.data?.message || 'Login failed';
       dispatch(signinFailure(errorMessage));
-      
+
       if (error.response?.status === 404) {
         toast.error('Please sign up first', { autoClose: 1000 });
         navigate('/signup');
@@ -52,14 +58,12 @@ function Login() {
   const googleLoginHandler = useGoogleLogin({
     onSuccess: handleGoogleResponse,
     onError: () => toast.error('Login failed', { autoClose: 1000 }),
-    flow: 'auth-code',
-    redirect_uri: window.location.origin,
+    flow: 'auth-code', // This generates the code client-side
   });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 
       flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background overlay */}
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
 
       {isLoading ? (
@@ -81,9 +85,9 @@ function Login() {
             drop-shadow-md">
             Login
           </h1>
-          
+
           <button
-            onClick={googleLoginHandler}
+            onClick={() => googleLoginHandler()} // Trigger Google login
             disabled={isLoading}
             className="w-full bg-blue-600/90 text-white py-3 px-4 rounded-lg 
               hover:bg-blue-700/90 transition-all duration-300 disabled:bg-blue-300/90 

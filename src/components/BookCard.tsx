@@ -35,17 +35,21 @@ export const BookCard: React.FC<BookCardProps> = ({
           Genre: <span className="text-white">{genre}</span>
         </p>
         <p className="text-white">{isbn}</p>
-        <div className="flex flex-col items-start space-x-1">
-          <p className="text-xl font-semibold text-dark-green">
-            {discountPrice && discountPrice !== 0 && discountPrice !== price
-              ? discountPrice
-              : price}{' '}
-            rs /-
-          </p>
-          {discountPrice && discountPrice !== price && (
-            <p className="text-sm text-muted-red line-through font-bold">{price} rs/-</p>
-          )}
-        </div>
+        <div className="flex flex-col items-start space-y-1">
+  {discountPrice && discountPrice !== 0 && discountPrice !== price ? (
+    <>
+      <p className="text-xl font-semibold text-dark-green">
+        {discountPrice} rs /-
+      </p>
+      <p className="text-sm text-muted-red line-through font-bold">
+        {price} rs /-
+      </p>
+    </>
+  ) : (
+    <p className="text-xl font-semibold text-dark-green">{price} rs /-</p>
+  )}
+</div>
+
       </div>
 
       {/* Action Buttons */}

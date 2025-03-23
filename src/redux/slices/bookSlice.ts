@@ -5,8 +5,8 @@ import { toast } from 'react-toastify';
 export interface BookValues {
   id?: number;
   title: string;
-  Author: { fullName: string };
-  Category: { categoryName: string };
+  Author: { name: string };
+  Category: { genre: string };
   isbn: string;
   publicationDate: string;
   price: number;
@@ -14,11 +14,18 @@ export interface BookValues {
 }
 
 interface BookState {
-  books: { data: BookValues[] } | null; // Match the structure from your component
+  books: {
+    books: BookValues[]; 
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    limit: number;
+  } | null;
   searchResults: BookValues[];
   loading: boolean;
   error: string | null;
 }
+
 
 const initialState: BookState = {
   books: null,
@@ -27,13 +34,20 @@ const initialState: BookState = {
   error: null,
 };
 
-// Fetch all books
+// Fetch paginated books
 export const fetchBooks = createAsyncThunk(
   'book/fetchBooks',
-  async (_, { rejectWithValue }) => {
+  async (
+    { page, limit }: { page: number; limit: number },
+    { rejectWithValue },
+  ) => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/book`);
-      return response.data;
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/book/paginated?page=${page}&limit=${limit}`,
+      );
+      console.log(response);
+
+      return response.data.data; // Updated to get paginated books correctly
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || 'Failed to fetch books',
@@ -41,6 +55,7 @@ export const fetchBooks = createAsyncThunk(
     }
   },
 );
+
 
 // Add a new book
 export const addBook = createAsyncThunk(
@@ -51,6 +66,8 @@ export const addBook = createAsyncThunk(
         `${import.meta.env.VITE_API_URL}/book`,
         book,
       );
+      console.log(response);
+      
       dispatch(fetchBooks());
       toast.success('Book added successfully!', { autoClose: 1000 });
       return response.data;
@@ -120,9 +137,16 @@ const bookSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchBooks.fulfilled, (state, action) => {
-        state.books = action.payload;
+        state.books = {
+          books: action.payload.books, // Array of books
+          totalItems: action.payload.totalItems,
+          totalPages: action.payload.totalPages,
+          currentPage: action.payload.currentPage,
+          limit: action.payload.limit,
+        };
         state.loading = false;
       })
+      
       .addCase(fetchBooks.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
