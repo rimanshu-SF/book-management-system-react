@@ -1,36 +1,47 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = {
-  currentUser: JSON.parse(localStorage.getItem('currentUser') || 'null'),
-  cookieFallback:JSON.parse(localStorage.getItem('cookieFallback') || 'null' ),
-  error: '',
+interface User {
+  name: string;
+  email: string;
+  token?: string;
+}
+
+interface UserState {
+  currentUser: User | null;
+  error: string;
+  isLoading: boolean;
+}
+
+const initialState: UserState = {
+  currentUser: JSON.parse(localStorage.getItem("user") || "null"), 
+  error: "",
   isLoading: false,
 };
 
 export const userSlice = createSlice({
-  name: 'user',
+  name: "user",
   initialState,
   reducers: {
     signinStart: (state) => {
       state.isLoading = true;
+      state.error = "";
     },
     signinSuccess: (state, action) => {
-      state.currentUser = action.payload.currentUser;
-      state.cookieFallback = localStorage.getItem('cookieFallback')
+      state.currentUser = action.payload;
       state.isLoading = false;
-      state.error = '';
-      localStorage.setItem('currentUser', JSON.stringify(action.payload.currentUser));
+      state.error = "";
+      localStorage.setItem("user", JSON.stringify(action.payload)); // Changed to "user"
     },
-    signinFailure: (state) => {
+    signinFailure: (state, action) => {
       state.currentUser = null;
-      state.error = '';
+      state.error = action.payload || "Login failed";
       state.isLoading = false;
     },
     logoutUser: (state) => {
       state.currentUser = null;
-      state.error = '';
+      state.error = "";
       state.isLoading = false;
-      localStorage.removeItem('currentUser');
+      localStorage.removeItem("user"); 
     },
   },
 });

@@ -1,145 +1,110 @@
-import { useEffect, useState } from 'react';
-import { account } from '../lib/appwrite';
-import { useDispatch, useSelector } from 'react-redux';
-import { signinFailure, signinStart, signinSuccess } from '../redux/slices/userSlice';
-import loginsvg from '../assets/images/login-svg.svg';
+import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
-import Button from '../components/Button';
-import Input from '../components/Input';
-import Label from '../components/Label';
 import { RootState } from '../redux/store/store';
 import { Hourglass } from 'react-loader-spinner';
+import { useGoogleLogin } from '@react-oauth/google';
+import { googleLogin } from '../services/api';
+import { useCallback, useEffect } from 'react';
+import {
+  signinStart,
+  signinSuccess,
+  signinFailure,
+} from '../redux/slices/userSlice';
 
 function Login() {
-  const loading = useSelector((state: RootState) => state.user.isLoading);
-  const currentSession = useSelector(
-    (state: RootState) => state.user.cookieFallback,
-  );
+  const { isLoading, currentUser } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
-  const [userData, setUserData] = useState({ email: '', password: '' });
-  const Navigate = useNavigate();
+  const navigate = useNavigate();
+
   useEffect(() => {
-    console.log('Current session', currentSession);
-    if (currentSession) {
-      Navigate('/booklist');
-      console.log(currentSession);
-    } else Navigate('/login');
-  }, [currentSession]);
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    dispatch(signinStart());
-    if (userData.password.length < 8) {
-      toast.error('Password must be 8');
-    }
+    if (currentUser) navigate('/booklist');
+  }, [currentUser, navigate]);
+
+  const handleGoogleResponse = useCallback(async (authResult: any) => {
     try {
-      const user = await account.createEmailPasswordSession(
-        userData.email,
-        userData.password,
-      );
+      // console.log('Auth Result:', authResult);
 
-      if (user) {
-        dispatch(
-          signinSuccess({
-            currentUser: user.providerUid,
-          }),
-        );
-        toast.success('Login', { autoClose: 1000 });
-        console.log(currentSession);
+      if (!authResult?.code) throw new Error('Authentication failed');
 
-        Navigate('/booklist');
+      dispatch(signinStart());
+      const response = await googleLogin(authResult.code); // Call API with code
+      const { data } = response;
+
+      const userObj = {
+        name: data.user.name,
+        email: data.user.email,
+        token: data.token,
+      };
+
+      dispatch(signinSuccess(userObj));
+      toast.success('Welcome back!', { autoClose: 1000 });
+      navigate('/booklist');
+    } catch (error: any) {
+      console.error('Login Error:', error);
+
+      const errorMessage = error.response?.data?.message || 'Login failed';
+      dispatch(signinFailure(errorMessage));
+
+      if (error.response?.status === 404) {
+        toast.error('Please sign up first', { autoClose: 1000 });
+        navigate('/signup');
+      } else {
+        toast.error(errorMessage, { autoClose: 1000 });
       }
-    } catch (err: any) {
-      if (err.code === 400) {
-        toast.error('Enter Valid Email', { autoClose: 1000 });
-      }
-      if (err.code === 401) {
-        toast.error('Unauthorized Access', { autoClose: 1000 });
-      }
-      if (err.code === 429) {
-        toast.error('Too many request, Try after sometime', {
-          autoClose: 1000,
-        });
-      }
-      console.log('Error: ', err);
-      dispatch(
-        signinFailure()
-      )
     }
-  };
+  }, [dispatch, navigate]);
+
+  const googleLoginHandler = useGoogleLogin({
+    onSuccess: handleGoogleResponse,
+    onError: () => toast.error('Login failed', { autoClose: 1000 }),
+    flow: 'auth-code', // This generates the code client-side
+  });
 
   return (
-    <>
-      {/* login container */}
-      {!loading ? (
-        <div className="login w-full min-h-screen flex justify-center items-center bg-blue-gray overflow-hidden">
-          <div className="login-form w-full mt-20 max-w-6xl bg-white flex flex-col md:flex-row justify-between items-center shadow-xl rounded-3xl  p-4">
-            {/* Register form right side */}
-            <div className="h-auto w-full flex justify-center items-center relative md:w-1/2 p-4">
-              <img
-                src={loginsvg}
-                alt="login side image"
-                className="w-full z-10 transform-3d h-auto max-w-[500px] mx-auto"
-              />
-              <div className="mr-36 mt-24 scale-125 rounded-full absolute opacity-70 bg-coral-pink skew-y-12 w-4/5 h-4/5"></div>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 
+      flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
 
-            {/* Login form left side */}
-            <div className="flex flex-col w-full md:w-1/2 p-4">
-              <form
-                onSubmit={handleLogin}
-                className="flex flex-col space-y-4 border-2 bg-white border-light-gray shadow-xl rounded-3xl">
-                <div className="flex w-full p-1 justify-start shadow-md mt-2">
-                  <h1 className="text-[32px] ml-5 font-canvet text-coral-pink font-bold">
-                    Login
-                  </h1>
-                </div>
-                <div className="p-2 flex flex-col">
-                  <Label labelName="Username" className="" />
-
-                  <Input
-                    id="username"
-                    name="username"
-                    placeholder="Enter your username"
-                    onChange={(e) =>
-                      setUserData({ ...userData, email: e.target.value })
-                    }
-                    className="shadow-md"
-                    required
-                  />
-                </div>
-
-                <div className=" p-2 flex flex-col">
-                  <Label labelName="Password" className="" />
-                  <Input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="Enter your password"
-                    onChange={(e) =>
-                      setUserData({ ...userData, password: e.target.value })
-                    }
-                    className="shadow-md"
-                    required
-                  />
-                </div>
-                <div className="px-4 py-1">
-                  <Button
-                    label="Login"
-                    disabled={false}
-                    className="mb-2 w-1/3 shadow-md p-3 bg-yellow-500 bg-lime-green text-white rounded-lg hover:bg-dark-green"
-                  />
-                </div>
-              </form>
-            </div>
-          </div>
+      {isLoading ? (
+        <div className="relative z-10">
+          <Hourglass
+            visible={true}
+            height="80"
+            width="80"
+            colors={['#ffffff', '#e5e7eb']}
+          />
         </div>
       ) : (
-        <div className="h-screen w-screen opacity-50 flex flex-col justify-center items-center">
-          <Hourglass />
+        <div className="relative z-10 login bg-white/5 p-8 rounded-xl shadow-2xl 
+          w-full max-w-md backdrop-blur-xl border border-white/20">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent 
+            rounded-xl -z-10"></div>
+
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-6 text-center 
+            drop-shadow-md">
+            Login
+          </h1>
+
+          <button
+            onClick={() => googleLoginHandler()} // Trigger Google login
+            disabled={isLoading}
+            className="w-full bg-blue-600/90 text-white py-3 px-4 rounded-lg 
+              hover:bg-blue-700/90 transition-all duration-300 disabled:bg-blue-300/90 
+              flex items-center justify-center gap-2 backdrop-blur-sm 
+              border border-white/10 shadow-md hover:shadow-lg"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.67 0-8.58-3.893-8.58-8.68s3.91-8.68 8.58-8.68c2.213 0 3.927.867 5.12 2.133l2.187-2.187C17.967 1.867 15.507 0 12 0 5.373 0 0 5.373 0 12s5.373 12 12 12c3.573 0 6.893-1.867 8.813-4.747 1.693-2.347 1.88-5.453 1.313-8.133h-9.647z"
+              />
+            </svg>
+            Login with Google
+          </button>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
